@@ -9,11 +9,11 @@ function performSingle(past, key, flexOptions = {}) {
 	//console.log(key);
 	
   src = src.replace(
-    "/*$$CURRENT$$*/",
+    "/*{{CURRENT}}*/",
     `
 		let data_${path.join("_")}_${key} = data_${path.join("_")}[${key}];
 		let res_${path.join("_")}_${key} = ${DEFINE_NEW_RES( "data_"+path.join("_")+"_"+key )}
-		/*$$CURRENT$$*/
+		/*{{CURRENT}}*/
 		res_${path.join("_")}[${key}] = res_${path.join("_")}_${key}
 	`
 	);
@@ -29,12 +29,12 @@ function performAll(past, flexOptions = {}) {
 	let path = past.path;
 	
   src = src.replace(
-    "/*$$CURRENT$$*/",
+    "/*{{CURRENT}}*/",
     `
 		for(let key_${path.join("_")}_$ in data_${path.join("_")}) {
 			let data_${path.join("_")}_$ = data_${path.join("_")}[key_${path.join("_")}_$];
 			let res_${path.join("_")}_$ = ${DEFINE_NEW_RES( "data_"+path.join("_")+"_$" )}
-			/*$$CURRENT$$*/
+			/*{{CURRENT}}*/
 			res_${path.join("_")}[key_${path.join("_")}_$] = res_${path.join("_")}_$
 		} 
 	`
@@ -51,11 +51,13 @@ function performFinal(past, flexOptions = {}) {
 	let path = past.path;
 	
   src = src.replace(
-    "/*$$CURRENT$$*/",
+    "/*{{CURRENT}}*/",
     `
-		res_${path.join("_")}
+		res_${path.join("_")} = data_${path.join("_")};
 	`
 	);
+	
+	console.log(src);
 	
 	past.src = src;
 	past.path.push("$");
@@ -74,6 +76,11 @@ function chomQL_proxyHandler(flexOptions = {}) {
 					$body: performAll(Reflect.get(obj, "$body"), flexOptions)
 				}, proxyHandler);
 			} else if (key[0] == "$") {
+				if (key == "$final") {
+					return new Proxy({
+						$body: performFinal(Reflect.get(obj, "$body"), flexOptions)
+					}, proxyHandler);
+				}
 				return Reflect.get(obj, key)
 			} else {
 				//console.log("Ddsadasd")
@@ -95,7 +102,7 @@ function chomQL(qlfn, flexOptions = {}) {
 				((obj) => {
 					let res_ = ${DEFINE_NEW_RES("obj")}
 					let data_ = obj
-					/*$$CURRENT$$*/
+					/*{{CURRENT}}*/
 					return res_;
 				})
 			`
@@ -113,4 +120,4 @@ let a = [[1,8],[2,5],[3,9]];
 let ql = chomQL($=>$.$);
 console.log(ql)
 //console.log(ql.$body.src)
-//console.log(eval(chomQL($=>$[0]).$body.src)(a));
+console.log(eval(chomQL($=>$[0]).$body.src)(a));
