@@ -5,21 +5,22 @@ function DEFINE_NEW_RES(varname) {
 function performSingle(past, key, flexOptions = {}) {
   let src = past.src;
 	let path = past.path;
+	let newPath = path.concat([key]);
 	
 	//console.log(key);
 	
   src = src.replace(
     "/*{{CURRENT}}*/",
     `
-		let data_${path.join("_")}_${key} = data_${path.join("_")}[${key}];
-		let res_${path.join("_")}_${key} = ${DEFINE_NEW_RES( "data_"+path.join("_")+"_"+key )}
+		let data_${newPath.join("_")} = data_${path.join("_")}[${key}];
+		let res_${newPath.join("_")} = ${DEFINE_NEW_RES( "data_"+newPath.join("_") )}
 		/*{{CURRENT}}*/
-		res_${path.join("_")}[${key}] = res_${path.join("_")}_${key}
+		res_${path.join("_")}[${key}] = res_${newPath.join("_")}
 	`
 	);
 	
 	past.src = src;
-	past.path.push(key);
+	past.path = newPath;
 	
 	return past;
 }
@@ -27,21 +28,22 @@ function performSingle(past, key, flexOptions = {}) {
 function performAll(past, flexOptions = {}) {
   let src = past.src;
 	let path = past.path;
+	let newPath = path.concat(["$"]);
 	
   src = src.replace(
     "/*{{CURRENT}}*/",
     `
-		for(let key_${path.join("_")}_$ in data_${path.join("_")}) {
-			let data_${path.join("_")}_$ = data_${path.join("_")}[key_${path.join("_")}_$];
-			let res_${path.join("_")}_$ = ${DEFINE_NEW_RES( "data_"+path.join("_")+"_$" )}
+		for(let key_${newPath.join("_")} in data_${path.join("_")}) {
+			let data_${newPath.join("_")} = data_${path.join("_")}[key_${newPath.join("_")}];
+			let res_${newPath.join("_")} = ${DEFINE_NEW_RES( "data_"+newPath.join("_") )}
 			/*{{CURRENT}}*/
-			res_${path.join("_")}[key_${path.join("_")}_$] = res_${path.join("_")}_$
+			res_${path.join("_")}[key_${newPath.join("_")}] = res_${newPath.join("_")}
 		} 
 	`
 	);
 	
 	past.src = src;
-	past.path.push("$");
+	past.path = newPath;
 	
 	return past;
 }
@@ -57,7 +59,7 @@ function performFinal(past, flexOptions = {}) {
 	`
 	);
 	
-	console.log(src);
+	//console.log(src);
 	
 	past.src = src;
 	past.path.push("$");
@@ -118,6 +120,6 @@ function chomQL(qlfn, flexOptions = {}) {
 
 let a = [[1,8],[2,5],[3,9]];
 let ql = chomQL($=>$.$);
-console.log(ql)
+//console.log(ql)
 //console.log(ql.$body.src)
-console.log(eval(chomQL($=>$[0]).$body.src)(a));
+console.log(eval(chomQL($=>$.$[0]).$body.src)(a));
