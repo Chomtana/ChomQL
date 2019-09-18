@@ -46,6 +46,23 @@ function performAll(past, flexOptions = {}) {
 	return past;
 }
 
+function performFinal(past, flexOptions = {}) {
+  let src = past.src;
+	let path = past.path;
+	
+  src = src.replace(
+    "/*$$CURRENT$$*/",
+    `
+		res_${path.join("_")}
+	`
+	);
+	
+	past.src = src;
+	past.path.push("$");
+	
+	return past;
+}
+
 function chomQL_proxyHandler(flexOptions = {}) {
 	let proxyHandler = {
 		get(obj, key, receiver) {
@@ -84,10 +101,16 @@ function chomQL(qlfn, flexOptions = {}) {
 			`
 		} //TO DO
 	};
-	return qlfn(new Proxy(ql, chomQL_proxyHandler(flexOptions)));
+	
+	let proxy = new Proxy(ql, chomQL_proxyHandler(flexOptions));
+	proxy = qlfn(proxy);
+	proxy = proxy.$final;
+	
+	return proxy;
 }
 
-let a = [1,2,3];
+let a = [[1,8],[2,5],[3,9]];
 let ql = chomQL($=>$.$);
+console.log(ql)
 //console.log(ql.$body.src)
-console.log(eval(chomQL($=>$[0]).$body.src)(a));
+//console.log(eval(chomQL($=>$[0]).$body.src)(a));
