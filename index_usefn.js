@@ -113,27 +113,40 @@ function chomQL_proxyHandler(flexOptions = {}) {
 			if (key === "inspect") return;
 			
 			if (key == "$") {
-				return new Proxy({
-					$body: performAll(Reflect.get(obj, "$body"), flexOptions)
+				return buildProxy({
+					$body: performAll( Object.assign({}, Reflect.get(obj, "$body") ), flexOptions)
 				}, proxyHandler);
 			} else if (key[0] == "$") {
 				if (key == "$final") {
-					return new Proxy({
-						$body: performFinal(Reflect.get(obj, "$body"), flexOptions)
+					return buildProxy({
+						$body: performFinal( Object.assign({}, Reflect.get(obj, "$body") ), flexOptions)
 					}, proxyHandler);
 				}
 				return Reflect.get(obj, key)
 			} else {
 				//console.log("Ddsadasd")
-				return new Proxy({
-					$body: performSingle(Reflect.get(obj, "$body"), key, flexOptions)
+				return buildProxy({
+					$body: performSingle( Object.assign({}, Reflect.get(obj, "$body") ), key, flexOptions)
 				}, proxyHandler);
 			}
+		},
+		apply(____, thisArg, args) {
+			for(let arg of args) {
+				console.log(arg);
+			}
+
+			console.log(Object.assign({}, ____))
+
+			return buildProxy( Object.assign({}, ____) , proxyHandler);
 		}
 	}
 	
 	return proxyHandler;
-} 
+}
+
+function buildProxy(obj, proxyHandler) {
+	return new Proxy( Object.assign(function () {}, obj), proxyHandler )
+}
 
 function chomQL(qlfn, flexOptions = {}) {
 	let ql = {
@@ -143,16 +156,14 @@ function chomQL(qlfn, flexOptions = {}) {
 				((obj) => {
 					let res_current = ${DEFINE_NEW_RES("obj")}
 					let data_current = obj
-					/*{{PRE}}*/
 					/*{{CURRENT}}*/
-					/*{{POST}}*/
 					return res_current;
 				})
 			`
 		} //TO DO
 	};
 	
-	let proxy = new Proxy(ql, chomQL_proxyHandler(flexOptions));
+	let proxy = buildProxy(ql, chomQL_proxyHandler(flexOptions));
 	proxy = qlfn(proxy);
 	proxy = proxy.$final;
 	
@@ -160,7 +171,7 @@ function chomQL(qlfn, flexOptions = {}) {
 }
 
 let a = [[1,8],[2,5],[3,9]];
-let ql = chomQL($=>$.$);
-//console.log(ql)
+let ql = chomQL($=>$.$(5,8));
+console.log(ql)
 //console.log(ql.$body.src)
-console.log(eval(chomQL($=>$.$[0]).$body.src)(a));
+//console.log(eval(chomQL($=>$[0].$).$body.src)(a));
