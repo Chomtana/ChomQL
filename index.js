@@ -9,15 +9,30 @@ function performSingle(past, key, flexOptions = {}) {
 	
 	//console.log(key);
 	
-  src = src.replace(
-    "/*{{CURRENT}}*/",
-    `
-		let data_${newPath.join("_")} = data_${path.join("_")}[${key}];
-		let res_${newPath.join("_")} = ${DEFINE_NEW_RES( "data_"+newPath.join("_") )}
-		/*{{CURRENT}}*/
-		res_${path.join("_")}[${key}] = res_${newPath.join("_")}
-	`
-	);
+  // src = src.replace(
+  //   "/*{{CURRENT}}*/",
+  //   `
+	// 	let data_${newPath.join("_")} = data_${path.join("_")}[${key}];
+	// 	let res_${newPath.join("_")} = ${DEFINE_NEW_RES( "data_"+newPath.join("_") )}
+	// 	/*{{CURRENT}}*/
+	// 	res_${path.join("_")}[${key}] = res_${newPath.join("_")}
+	// `
+	// );
+
+	src = src.replace("/*{{CURRENT}}*/",
+		`
+		{
+			let data_parent = data_current
+			let res_parent = res_current
+			{
+				let data_current = data_parent[${JSON.stringify(key)}];
+				let res_current = ${DEFINE_NEW_RES( "data_current" )}
+				/*{{CURRENT}}*/
+				res_parent[${JSON.stringify(key)}] = res_current;
+			}
+		}
+		`
+	)
 	
 	past.src = src;
 	past.path = newPath;
@@ -30,17 +45,32 @@ function performAll(past, flexOptions = {}) {
 	let path = past.path;
 	let newPath = path.concat(["$"]);
 	
-  src = src.replace(
-    "/*{{CURRENT}}*/",
-    `
-		for(let key_${newPath.join("_")} in data_${path.join("_")}) {
-			let data_${newPath.join("_")} = data_${path.join("_")}[key_${newPath.join("_")}];
-			let res_${newPath.join("_")} = ${DEFINE_NEW_RES( "data_"+newPath.join("_") )}
-			/*{{CURRENT}}*/
-			res_${path.join("_")}[key_${newPath.join("_")}] = res_${newPath.join("_")}
-		} 
-	`
-	);
+  //src = src.replace(
+  //  "/*{{CURRENT}}*/",
+	//	`
+	//	for(let key_${newPath.join("_")} in data_${path.join("_")}) {
+	//		let data_${newPath.join("_")} = data_${path.join("_")}[key_${newPath.join("_")}];
+	//		let res_${newPath.join("_")} = ${DEFINE_NEW_RES( "data_"+newPath.join("_") )}
+	//		/*{{CURRENT}}*/
+	//		res_${path.join("_")}[key_${newPath.join("_")}] = res_${newPath.join("_")}
+	//	} 
+	//`
+	//);
+
+	src = src.replace("/*{{CURRENT}}*/",
+		`
+		for(let key_current in data_current) {
+			let data_parent = data_current
+			let res_parent = res_current
+			{
+				let data_current = data_parent[key_current];
+				let res_current = ${DEFINE_NEW_RES( "data_current" )}
+				/*{{CURRENT}}*/
+				res_parent[key_current] = res_current;
+			}
+		}
+		`
+	)
 	
 	past.src = src;
 	past.path = newPath;
@@ -55,7 +85,7 @@ function performFinal(past, flexOptions = {}) {
   src = src.replace(
     "/*{{CURRENT}}*/",
     `
-		res_${path.join("_")} = data_${path.join("_")};
+		res_current = data_current;
 	`
 	);
 	
@@ -102,10 +132,10 @@ function chomQL(qlfn, flexOptions = {}) {
 			path: [],
 			src: `
 				((obj) => {
-					let res_ = ${DEFINE_NEW_RES("obj")}
-					let data_ = obj
+					let res_current = ${DEFINE_NEW_RES("obj")}
+					let data_current = obj
 					/*{{CURRENT}}*/
-					return res_;
+					return res_current;
 				})
 			`
 		} //TO DO
