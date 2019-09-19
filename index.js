@@ -11,6 +11,16 @@ function DEFINE_NEW_RES(varname) {
 	return `typeof ${varname} === "object" ? (Array.isArray(${varname}) ? [] : (${varname} === null ? null : {}) ) : ${varname}`
 }
 
+function SET_RES(key) {
+	return `
+		if (Array.isArray(res_parent)) {
+			res_parent.push(res_current)
+		} else {
+			res_parent[${key}] = res_current;
+		}
+	`
+}
+
 function performSingle(past, key, flexOptions = {}) {
   let src = past.src;
 	let path = past.path;
@@ -37,7 +47,7 @@ function performSingle(past, key, flexOptions = {}) {
 				let data_current = data_parent[${JSON.stringify(key)}];
 				let res_current = ${DEFINE_NEW_RES( "data_current" )}
 				/*{{CURRENT}}*/
-				res_parent[${JSON.stringify(key)}] = res_current;
+				${SET_RES(JSON.stringify(key))}
 			}
 		}
 		`
@@ -75,7 +85,7 @@ function performAll(past, flexOptions = {}) {
 				let data_current = data_parent[key_current];
 				let res_current = ${DEFINE_NEW_RES( "data_current" )}
 				/*{{CURRENT}}*/
-				res_parent[key_current] = res_current;
+				${SET_RES("key_current")}
 			}
 		}
 		`
@@ -104,6 +114,23 @@ function performFinal(past, flexOptions = {}) {
 	past.path.push("$");
 	
 	return past;
+}
+
+function mergeResult(results, flexOptions = {}) {
+	let ql = {
+		$body: {
+			path: [],
+			src: `
+				/*{{POST}}*/
+			`
+		} //TO DO
+	};
+	
+	for(let result of results) {
+		ql.$body.src = strReplaceAll(ql.$body.src, "/*{{POST}}*/", "{"+result.$body.src+"}")
+	}
+	
+	return new Proxy(ql, chomQL_proxyHandler(flexOptions));
 }
 
 function chomQL_proxyHandler(flexOptions = {}) {
@@ -154,13 +181,16 @@ function chomQL(qlfn, flexOptions = {}) {
 	
 	let proxy = new Proxy(ql, chomQL_proxyHandler(flexOptions));
 	proxy = qlfn(proxy);
-	proxy = proxy.$final;
-	
-	return proxy;
+	if (!Array.isArray(proxy)) {
+		proxy = proxy.$final;
+		return proxy;
+	} else {
+		//return mergeResult()
+	}
 }
 
 let a = [[1,8],[2,5],[3,9]];
 let ql = chomQL($=>$.$);
 //console.log(ql)
 //console.log(ql.$body.src)
-console.log(eval(chomQL($=>$.$[0]).$body.src)(a));
+console.log(eval(chomQL($=>$.$[1]).$body.src)(a));
