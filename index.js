@@ -104,7 +104,9 @@ function chomQL(qlfn, flexOptions = {}) {
 				((obj) => {
 					let res_ = ${DEFINE_NEW_RES("obj")}
 					let data_ = obj
+					/*{{PRE}}*/
 					/*{{CURRENT}}*/
+					/*{{POST}}*/
 					return res_;
 				})
 			`
