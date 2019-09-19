@@ -1,3 +1,12 @@
+//utils
+function escapeRegExp(str) {
+	return str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+}
+
+function strReplaceAll(str, find, replace) {
+	return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
+}
+
 function DEFINE_NEW_RES(varname) {
 	return `typeof ${varname} === "object" ? (Array.isArray(${varname}) ? [] : (${varname} === null ? null : {}) ) : ${varname}`
 }
@@ -19,7 +28,7 @@ function performSingle(past, key, flexOptions = {}) {
 	// `
 	// );
 
-	src = src.replace("/*{{CURRENT}}*/",
+	src = strReplaceAll(src, "/*{{CURRENT}}*/",
 		`
 		{
 			let data_parent = data_current
@@ -57,7 +66,7 @@ function performAll(past, flexOptions = {}) {
 	//`
 	//);
 
-	src = src.replace("/*{{CURRENT}}*/",
+	src = strReplaceAll(src, "/*{{CURRENT}}*/",
 		`
 		for(let key_current in data_current) {
 			let data_parent = data_current
