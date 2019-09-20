@@ -37,9 +37,13 @@ function performSingle(past, key, flexOptions = {}) {
 	// 	res_${path.join("_")}[${key}] = res_${newPath.join("_")}
 	// `
 	// );
+	
+	src = strReplaceAll(src, "/*{{PRE}}*/","");
+	src = strReplaceAll(src, "/*{{POST}}*/","");
 
 	src = strReplaceAll(src, "/*{{CURRENT}}*/",
 		`
+		/*{{PRE}}*/
 		{
 			let data_parent = data_current
 			let res_parent = res_current
@@ -50,6 +54,7 @@ function performSingle(past, key, flexOptions = {}) {
 				${SET_RES(JSON.stringify(key))}
 			}
 		}
+		/*{{POST}}*/
 		`
 	)
 	
@@ -75,9 +80,13 @@ function performAll(past, flexOptions = {}) {
 	//	} 
 	//`
 	//);
+	
+	src = strReplaceAll(src, "/*{{PRE}}*/","");
+	src = strReplaceAll(src, "/*{{POST}}*/","");
 
 	src = strReplaceAll(src, "/*{{CURRENT}}*/",
 		`
+		/*{{PRE}}*/
 		for(let key_current in data_current) {
 			let data_parent = data_current
 			let res_parent = res_current
@@ -88,6 +97,7 @@ function performAll(past, flexOptions = {}) {
 				${SET_RES("key_current")}
 			}
 		}
+		/*{{POST}}*/
 		`
 	)
 	
@@ -116,6 +126,30 @@ function performFinal(past, flexOptions = {}) {
 	past.path.push("$");
 	
 	return past;
+}
+
+function performMap(fn, past, flexOptions = {}) {
+	let src = past.src;
+	let fnstr = "("+fn.toString()+")";
+	
+	src = strReplaceAll(src, "/*{{CURRENT}}*/","");
+	
+	src = strReplaceAll(src, "/*{{POST}}*/",
+		`
+		/*{{PRE}}*/
+		for(let key_current in res_current) {
+			let data_parent = res_current
+			let res_parent = res_current
+			{
+				let data_current = ${fnstr}(data_parent[key_current], key_current);
+				let res_current = ${DEFINE_NEW_RES( "data_current" )}
+				/*{{CURRENT}}*/
+				${SET_RES("key_current")}
+			}
+		}
+		/*{{POST}}*/
+		`
+	);
 }
 
 function mergeResult(results, flexOptions = {}, proxy_handler) {
@@ -154,6 +188,12 @@ function mergeResult(results, flexOptions = {}, proxy_handler) {
 	return proxy;
 }
 
+function performFromProxy(fn, args, flexOptions = {}, proxyHandler, obj, key, receiver) {
+	return new Proxy({
+		$body: fn(Object.assign({}, Reflect.get(obj, "$body")), ...args, flexOptions)
+	}, proxyHandler);
+}
+
 function chomQL_proxyHandler(flexOptions = {}) {
 	let proxyHandler = {
 		get(obj, key, receiver) {
@@ -161,21 +201,14 @@ function chomQL_proxyHandler(flexOptions = {}) {
 			if (key === "inspect") return;
 			
 			if (key == "$") {
-				return new Proxy({
-					$body: performAll(Object.assign({}, Reflect.get(obj, "$body")), flexOptions)
-				}, proxyHandler);
+				return performFromProxy(performAll, [], flexOptions, proxyHandler, obj, key, receiver);
 			} else if (key[0] == "$") {
 				if (key == "$final") {
-					return new Proxy({
-						$body: performFinal(Object.assign({}, Reflect.get(obj, "$body")), flexOptions)
-					}, proxyHandler);
+					return performFromProxy(performFinal, [], flexOptions, proxyHandler, obj, key, receiver);
 				}
 				return Reflect.get(obj, key)
 			} else {
-				//console.log("Ddsadasd")
-				return new Proxy({
-					$body: performSingle(Object.assign({}, Reflect.get(obj, "$body")), key, flexOptions)
-				}, proxyHandler);
+				return performFromProxy(performSingle, [key], flexOptions, proxyHandler, obj, key, receiver);
 			}
 		}
 	}
@@ -214,7 +247,7 @@ function chomQL(qlfn, flexOptions = {}) {
 }
 
 let a = [[1,8, 16],[2,5, 22],[3,9, 39]];
-let ql = chomQL($=>[$[0]]);
+let ql = chomQL($=>[$.$, [$[0], $[1]], $.$[2]]);
 //console.log(ql)
-//console.log(ql.$body.src)
-console.log(eval(chomQL($=>[$.$, [$[0], $[2]]]).$body.src)(a));
+console.log(ql.$body.src)
+console.log(eval(chomQL($=>[$.$, [$[0], $[1]], $.$[2]]).$body.src)(a));
