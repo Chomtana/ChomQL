@@ -129,20 +129,26 @@ function mergeResult(results, flexOptions = {}, proxy_handler) {
 	};
 	
 	for(let result of results) {
-		ql.$body.src = strReplaceAll(ql.$body.src, "/*{{POST}}*/", 
-			`
-			{
-				let res_merge = ${result.$body.src}(data_current)
-				if (Array.isArray(res_current)) {
-					res_current.push(...res_merge);
-				} else {
-					Object.assign(res_current, res_merge);
+		if (Array.isArray(result)) {
+			ql.$body.src = strReplaceAll(ql.$body.src, "/*{{LASTCURRENT}}*/", mergeResult(result, flexOptions, proxy_handler).$body.src)
+		} else {
+			ql.$body.src = strReplaceAll(ql.$body.src, "/*{{LASTCURRENT}}*/", "/*{{CURRENT}}*/");
+			ql.$body.src = strReplaceAll(ql.$body.src, "/*{{POST}}*/", 
+				`
+				{
+					let res_merge = ${strReplaceAll(result.$body.src, "/*{{CURRENT}}*/", "/*{{LASTCURRENT}}*/")}(data_current)
+					if (Array.isArray(res_current)) {
+						res_current.push(...res_merge);
+					} else {
+						Object.assign(res_current, res_merge);
+					}
 				}
-			}
-			`
-		)
+				`
+			)
+		}
 	}
 	
+	ql.$body.src = strReplaceAll(ql.$body.src, "/*{{LASTCURRENT}}*/", "/*{{CURRENT}}*/");
 	let proxy = new Proxy(ql, proxy_handler);
 	proxy = proxy.$final;
 	return proxy;
@@ -207,8 +213,8 @@ function chomQL(qlfn, flexOptions = {}) {
 	return proxy;
 }
 
-let a = [[1,8],[2,5],[3,9]];
+let a = [[1,8, 16],[2,5, 22],[3,9, 39]];
 let ql = chomQL($=>[$[0]]);
 //console.log(ql)
 //console.log(ql.$body.src)
-console.log(eval(chomQL($=>[$[0], $[1]]).$body.src)(a));
+console.log(eval(chomQL($=>[$.$, [$[0], $[2]]]).$body.src)(a));
