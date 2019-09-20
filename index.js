@@ -128,7 +128,7 @@ function performFinal(past, flexOptions = {}) {
 	return past;
 }
 
-function performMap(fn, past, flexOptions = {}) {
+function performMapExtend(past, fn, flexOptions = {}) {
 	let src = past.src;
 	let fnstr = "("+fn.toString()+")";
 	
@@ -150,6 +150,10 @@ function performMap(fn, past, flexOptions = {}) {
 		/*{{POST}}*/
 		`
 	);
+	
+	past.src = src;
+	
+	return past;
 }
 
 function mergeResult(results, flexOptions = {}, proxy_handler) {
@@ -203,8 +207,9 @@ function chomQL_proxyHandler(flexOptions = {}) {
 			if (key == "$") {
 				return performFromProxy(performAll, [], flexOptions, proxyHandler, obj, key, receiver);
 			} else if (key[0] == "$") {
-				if (key == "$final") {
-					return performFromProxy(performFinal, [], flexOptions, proxyHandler, obj, key, receiver);
+				switch(key) {
+					case "$final": return performFromProxy(performFinal, [], flexOptions, proxyHandler, obj, key, receiver);
+					case "$mapExtend": return (fn) => performFromProxy(performMapExtend, [fn], flexOptions, proxyHandler, obj, key, receiver);
 				}
 				return Reflect.get(obj, key)
 			} else {
@@ -247,7 +252,7 @@ function chomQL(qlfn, flexOptions = {}) {
 }
 
 let a = [[1,8, 16],[2,5, 22],[3,9, 39]];
-let ql = chomQL($=>[$.$, [$[0], $[1]], $.$[2]]);
+let ql = chomQL($=>[$.$, [$[0], $[1]], $.$[2].$mapExtend(x=>x*x)]);
 //console.log(ql)
-console.log(ql.$body.src)
-console.log(eval(chomQL($=>[$.$, [$[0], $[1]], $.$[2]]).$body.src)(a));
+//console.log(ql.$body.src)
+console.log(eval(ql.$body.src)(a));
